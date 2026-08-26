@@ -10,7 +10,7 @@ const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
 const path = require('path');
-const { parseTurkishTime } = require('./utils/timeParser');
+const { parseTurkishTime, isTripCancelled } = require('./utils/timeParser');
 const { connectToWhatsApp } = require('./whatsapp/bot');
 const { fetchDriversFromDb, insertDriverToDb, updateDriverEtaInDb, clearAllDriverEtasInDb, deleteDriverFromDb } = require('./db/supabase');
 const googleSheetsService = require('./sheets/googleSheets');
@@ -402,9 +402,10 @@ connectToWhatsApp(
 
     console.log(`[Incoming Message Raw] JID: ${msg.key?.remoteJid} | senderPn: ${msg.key?.senderPn} | participant: ${msg.key?.participant} | Text: "${text}"`);
 
+    const isCancelled = isTripCancelled(text);
     const parsedTime = parseTurkishTime(text);
-    if (!parsedTime) {
-      console.log(`[Incoming Message] No ETA time parsed from: "${text}"`);
+    if (!parsedTime && !isCancelled) {
+      console.log(`[Incoming Message] No ETA time or cancellation parsed from: "${text}"`);
       return;
     }
 
@@ -463,7 +464,7 @@ connectToWhatsApp(
     const currentHour = now.getHours();
     const cutoffStr = String(cutoffHour).padStart(2, '0') + ':00';
 
-    if (currentHour >= cutoffHour) {
+    if (currentHour >= cutoffHour && !isCancelled) {
       const closedReply = `Sayın ${matchingDriver.driver}, mesai saatlerimiz (${cutoffStr}) sona erdiğinden dolayı tahmini varış saati kabul edilmemektedir.`;
       console.log(`[WhatsApp Reply Closed] -> JID: ${replyJid} | Content: "${closedReply}"`);
       await sock.sendMessage(replyJid, { text: String(closedReply) }, { ephemeralExpiration: 0 });
@@ -471,39 +472,42 @@ connectToWhatsApp(
     }
 
     // DYNAMIC CUT-OFF RULE 3: Do not accept ETA times past cutoff hour! (e.g. ETA > cutoffStr)
-    if (parsedTime > cutoffStr) {
+    if (parsedTime && parsedTime > cutoffStr) {
       const lateEtaReply = `Sayın ${matchingDriver.driver}, saat ${cutoffStr}'dan sonraki varış saatleri kabul edilmemektedir.`;
       console.log(`[WhatsApp Reply Late ETA] -> JID: ${replyJid} | ETA: ${parsedTime}`);
       await sock.sendMessage(replyJid, { text: String(lateEtaReply) }, { ephemeralExpiration: 0 });
       return;
     }
 
+    const effectiveStatus = isCancelled ? 'GELMİYOR' : parsedTime;
     let isUpdate = false;
     let oldTime = matchingDriver.note;
-    isUpdate = Boolean(oldTime && oldTime !== parsedTime);
-    matchingDriver.note = parsedTime;
+    isUpdate = Boolean(oldTime && oldTime !== effectiveStatus);
+    matchingDriver.note = effectiveStatus;
     io.emit('drivers_update', driversList);
 
     // Sync ETA update directly to Supabase DB & Google Sheets
     const effectivePhoneDigits = cleanPhoneDigits || matchingDriver.phone.replace(/[^0-9]/g, '');
     if (effectivePhoneDigits) {
       const tripLabel = (matchingDriver.driver || '').includes('2. Sefer') ? '2. Sefer' : '';
-      await updateDriverEtaInDb(effectivePhoneDigits.slice(-10), parsedTime);
-      await googleSheetsService.updateDriverEtaInSheet(matchingDriver.plate, matchingDriver.phone, parsedTime, tripLabel);
+      await updateDriverEtaInDb(effectivePhoneDigits.slice(-10), effectiveStatus);
+      await googleSheetsService.updateDriverEtaInSheet(matchingDriver.plate, matchingDriver.phone, effectiveStatus, tripLabel);
     }
 
     const driverInfo = `${matchingDriver.driver} (${matchingDriver.plate || 'Plakasız'})`;
 
-    const logText = isUpdate
-      ? `Tahmini Saati Güncelledi: ${parsedTime} (Eski: ${oldTime})`
-      : `Tahmini Varış Saati Alındı: ${parsedTime}`;
+    const logText = isCancelled
+      ? `Araç İptal / Gelmiyor Bildirdi: GELMİYOR`
+      : (isUpdate
+          ? `Tahmini Saati Güncelledi: ${parsedTime} (Eski: ${oldTime})`
+          : `Tahmini Varış Saati Alındı: ${parsedTime}`);
 
     const logEntry = {
       timestamp: new Date().toLocaleTimeString('tr-TR'),
       phone: matchingDriver.phone,
       driverName: driverInfo,
       text: logText,
-      parsedTime,
+      parsedTime: effectiveStatus,
     };
     driverLogs.unshift(logEntry);
     io.emit('new_message', logEntry);
@@ -519,9 +523,14 @@ connectToWhatsApp(
       driverDisplayName = `${driverDisplayName} (1. Sefer)`;
     }
 
-    const replyText = isUpdate
-      ? `Teşekkürler Sayın ${driverDisplayName}! Tahmini varış saatiniz (${parsedTime}) olarak güncellendi.`
-      : `Teşekkürler Sayın ${driverDisplayName}! Tahmini varış saatiniz (${parsedTime}) olarak sisteme kaydedildi.`;
+    let replyText = '';
+    if (isCancelled) {
+      replyText = `Bilgilendirme için teşekkürler Sayın ${driverDisplayName}. Durumunuz sisteme (GELMİYOR) olarak kaydedildi.`;
+    } else {
+      replyText = isUpdate
+        ? `Teşekkürler Sayın ${driverDisplayName}! Tahmini varış saatiniz (${parsedTime}) olarak güncellendi.`
+        : `Teşekkürler Sayın ${driverDisplayName}! Tahmini varış saatiniz (${parsedTime}) olarak sisteme kaydedildi.`;
+    }
 
     console.log(`[WhatsApp Reply Sent] -> JID: ${replyJid} | Content: "${replyText}"`);
     await sock.sendMessage(replyJid, { text: String(replyText) }, { ephemeralExpiration: 0 });

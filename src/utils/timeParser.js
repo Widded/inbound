@@ -71,4 +71,28 @@ function parseTurkishTime(text) {
   return null;
 }
 
-module.exports = { parseTurkishTime };
+function isTripCancelled(text) {
+  if (!text || typeof text !== 'string') return false;
+  const str = text
+    .toLowerCase()
+    .replace(/İ/g, 'i').replace(/I/g, 'ı')
+    .replace(/ç/g, 'c').replace(/ğ/g, 'g').replace(/ö/g, 'o').replace(/ş/g, 's').replace(/ü/g, 'u')
+    .trim();
+
+  // Keyword list indicating driver won't come to warehouse
+  const cancelKeywords = [
+    'yok', 'yokum', 'yokuz', 'gelmiyorum', 'gelmeyecegim', 'gelmiycem', 'gelmeyecek',
+    'iptal', 'sefer yok', 'gorev yok', 'arac yok', 'cikis yok', 'pas', 'bugun yok', 'sefer iptal'
+  ];
+
+  for (const kw of cancelKeywords) {
+    const regex = new RegExp(`(^|\\s|[.,!?-])${kw}($|\\s|[.,!?-])`, 'i');
+    if (regex.test(str) || str === kw) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+module.exports = { parseTurkishTime, isTripCancelled };
