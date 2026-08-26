@@ -113,19 +113,17 @@
     </header>
 
     <!-- Main Content Stage -->
-    <main class="ty-stage">
-      
-      <!-- Top Metrics 3-Card Grid -->
+    <main clas      <!-- Top Metrics 4-Card Grid -->
       <section class="ty-kpi-grid">
         
         <!-- Metric 1: Toplam Filo -->
         <div class="ty-metric-tile" id="kpi-total">
           <div class="ty-tile-header">
-            <span class="ty-tile-heading">TOPLAM FİLO & ARAÇ</span>
+            <span class="ty-tile-heading">TOPLAM FİLO</span>
             <div class="ty-tile-icon-box orange">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <rect x="1" y="3" width="15" height="13"></rect>
-                <polygon points="16 8 20 8 23 11 23 16 16 16 16 8"></polygon>
+                <polygon points="16 8 20 8 23 11 23 16 16 16 8"></polygon>
                 <circle cx="5.5" cy="18.5" r="2.5"></circle>
                 <circle cx="18.5" cy="18.5" r="2.5"></circle>
               </svg>
@@ -182,6 +180,26 @@
           </div>
         </div>
 
+        <!-- Metric 4: Gelmeyenler / İptal -->
+        <div class="ty-metric-tile danger" id="kpi-cancelled">
+          <div class="ty-tile-header">
+            <span class="ty-tile-heading">GELMEYENLER / İPTAL</span>
+            <div class="ty-tile-icon-box red">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+              </svg>
+            </div>
+          </div>
+          <div class="ty-tile-number-row">
+            <span id="stat-cancelled" class="ty-tile-big-num red">0</span>
+            <span class="ty-tile-tag red">İptal / Yok</span>
+          </div>
+          <div class="ty-tile-progress-track">
+            <div id="stat-progress-cancelled" class="ty-tile-progress-fill red" style="width: 0%;"></div>
+          </div>
+        </div>
+
       </section>
 
       <!-- Main Dual Panel Layout (Table + Side Gateway) -->
@@ -205,6 +223,10 @@
                 <button class="ty-nav-pill" data-filter="completed" onclick="setFilter('completed')">
                   Saati Alınanlar <span id="tab-badge-completed" class="ty-pill-counter ok">0</span>
                 </button>
+                <button class="ty-nav-pill" data-filter="cancelled" onclick="setFilter('cancelled')">
+                  Gelmeyenler <span id="tab-badge-cancelled" class="ty-pill-counter danger">0</span>
+                </button>
+              </div>             </button>
               </div>
 
               <!-- Search & Quick Action Buttons -->

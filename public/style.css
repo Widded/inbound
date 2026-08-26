@@ -1,5 +1,5 @@
 /* ==========================================================================
-   TRENDYOL AYAZAĞA KM - HARD MOBILE NATIVE & DESKTOP DUAL DESIGN SYSTEM
+   TRENDYOL AYAZAĞA KM - HARD MOBILE NATIVE & CATEGORIZED DESKTOP UI
    ========================================================================== */
 
 :root {
@@ -32,6 +32,7 @@
   --ty-purple-border: rgba(139, 92, 246, 0.2);
 
   --ty-red-500: #ef4444;
+  --ty-red-600: #dc2626;
   --ty-red-subtle: #fef2f2;
   --ty-red-border: rgba(239, 68, 68, 0.25);
 
@@ -363,7 +364,7 @@ button, input, select {
 }
 
 /* ==========================================================================
-   METRICS TILES
+   METRICS 4-CARD CATEGORIZED GRID
    ========================================================================== */
 
 .ty-stage {
@@ -375,7 +376,7 @@ button, input, select {
 
 .ty-kpi-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   gap: 16px;
   margin-bottom: 20px;
 }
@@ -430,6 +431,10 @@ button, input, select {
   background: var(--ty-amber-subtle);
   color: var(--ty-amber-500);
 }
+.ty-tile-icon-box.red {
+  background: var(--ty-red-subtle);
+  color: var(--ty-red-500);
+}
 
 .ty-tile-number-row {
   display: flex;
@@ -449,6 +454,7 @@ button, input, select {
 }
 .ty-tile-big-num.green { color: var(--ty-green-600); }
 .ty-tile-big-num.amber { color: var(--ty-amber-500); }
+.ty-tile-big-num.red { color: var(--ty-red-500); }
 
 .ty-tile-unit {
   font-size: 12px;
@@ -466,6 +472,11 @@ button, input, select {
   background: var(--ty-green-subtle);
   color: var(--ty-green-600);
   border: 1px solid var(--ty-green-border);
+}
+.ty-tile-tag.red {
+  background: var(--ty-red-subtle);
+  color: var(--ty-red-500);
+  border: 1px solid var(--ty-red-border);
 }
 
 .ty-btn-ask-all-inline {
@@ -504,6 +515,7 @@ button, input, select {
 .ty-tile-progress-fill.orange { background: var(--ty-orange-gradient); }
 .ty-tile-progress-fill.green { background: var(--ty-green-gradient); }
 .ty-tile-progress-fill.amber { background: var(--ty-amber-500); }
+.ty-tile-progress-fill.red { background: var(--ty-red-500); }
 
 /* ==========================================================================
    DUAL COLUMN SPLIT LAYOUT
@@ -588,6 +600,7 @@ button, input, select {
 }
 .ty-pill-counter.warn { background: var(--ty-amber-subtle); color: var(--ty-amber-500); }
 .ty-pill-counter.ok { background: var(--ty-green-subtle); color: var(--ty-green-600); }
+.ty-pill-counter.danger { background: var(--ty-red-subtle); color: var(--ty-red-500); }
 
 /* Toolbar Controls */
 .ty-toolbar-controls {
@@ -815,8 +828,8 @@ button, input, select {
 .ty-eta-badge-interactive {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  padding: 4px 9px;
+  gap: 5px;
+  padding: 5px 10px;
   border-radius: var(--radius-pill);
   font-size: 11px;
   font-weight: 800;
@@ -844,10 +857,25 @@ button, input, select {
   background: #fef3c7;
 }
 
+/* HARD VIBRANT RED GELMIYOR BACKGROUND */
+.ty-eta-badge-interactive.cancelled {
+  background: #ef4444 !important;
+  color: #ffffff !important;
+  border: 1px solid #dc2626 !important;
+  box-shadow: 0 2px 6px rgba(239, 68, 68, 0.35);
+  font-weight: 800;
+}
+.ty-eta-badge-interactive.cancelled:hover, .ty-eta-badge-interactive.cancelled:active {
+  background: #dc2626 !important;
+}
+.ty-eta-badge-interactive.cancelled svg {
+  stroke: #ffffff !important;
+}
+
 .ty-edit-spark {
   display: inline-flex;
   align-items: center;
-  opacity: 0.7;
+  opacity: 0.8;
 }
 
 /* Actions Cluster */
@@ -976,6 +1004,7 @@ button, input, select {
 }
 .ty-dot.ok { background: var(--ty-green-500); }
 .ty-dot.warn { background: var(--ty-amber-500); }
+.ty-dot.danger { background: var(--ty-red-500); }
 
 /* ==========================================================================
    SIDEBAR: GATEWAY & LIVE FEED
@@ -1280,6 +1309,16 @@ button, input, select {
   color: var(--ty-orange-500);
 }
 
+.ty-time-chip.cancelled {
+  background: #ef4444 !important;
+  color: #ffffff !important;
+  border-color: #dc2626 !important;
+  font-weight: 800;
+}
+.ty-time-chip.cancelled:hover, .ty-time-chip.cancelled:active {
+  background: #dc2626 !important;
+}
+
 .ty-form-field-custom {
   display: flex;
   flex-direction: column;
@@ -1423,11 +1462,14 @@ button, input, select {
 }
 
 /* ==========================================================================
-   HARD MOBILE TRANSFORMATION (NATIVE MOBILE CARDS & LAYOUT)
+   HARD MOBILE & RESPONSIVE TRANSFORMATION
    ========================================================================== */
 
 /* Tablet & Intermediate Viewports */
-@media (max-width: 1080px) {
+@media (max-width: 1180px) {
+  .ty-kpi-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
   .ty-split-layout {
     grid-template-columns: 1fr;
   }
@@ -1510,13 +1552,14 @@ button, input, select {
   .ty-segmented-nav {
     width: 100%;
     display: flex;
+    overflow-x: auto;
   }
 
   .ty-nav-pill {
     flex: 1;
     justify-content: center;
     padding: 7px 4px;
-    font-size: 11px;
+    font-size: 10px;
   }
 
   .ty-toolbar-controls {

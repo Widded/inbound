@@ -92,41 +92,46 @@ socket.on('cutoff_update', (data) => {
 
 // ==========================================================================
 // KPI & METRICS UPDATE
-// ==========================================================================
-
-function updateStats(drivers) {
+// =================================================================function updateStats(drivers) {
   const total = drivers.length;
   const pending = drivers.filter(d => (!d.note || d.note.trim() === '')).length;
-  const completed = drivers.filter(d => d.note && d.note.trim() !== '').length;
+  const completed = drivers.filter(d => d.note && d.note.trim() !== '' && d.note !== 'GELMİYOR').length;
+  const cancelled = drivers.filter(d => d.note === 'GELMİYOR').length;
   const pct = total > 0 ? Math.round((completed / total) * 100) : 0;
 
   // Numeric KPI Cards
   const elTotal = document.getElementById('stat-total');
   const elPending = document.getElementById('stat-pending');
   const elCompleted = document.getElementById('stat-completed');
+  const elCancelled = document.getElementById('stat-cancelled');
   const elCompletedPct = document.getElementById('stat-completed-pct');
   const elProgressComp = document.getElementById('stat-progress-completed');
   const elProgressPend = document.getElementById('stat-progress-pending');
+  const elProgressCanc = document.getElementById('stat-progress-cancelled');
 
   if (elTotal) elTotal.innerText = total;
   if (elPending) elPending.innerText = pending;
   if (elCompleted) elCompleted.innerText = completed;
+  if (elCancelled) elCancelled.innerText = cancelled;
   if (elCompletedPct) elCompletedPct.innerText = `%${pct} Tamamlandı`;
   if (elProgressComp) elProgressComp.style.width = `${pct}%`;
   if (elProgressPend) elProgressPend.style.width = `${total > 0 ? (pending / total) * 100 : 0}%`;
+  if (elProgressCanc) elProgressCanc.style.width = `${total > 0 ? (cancelled / total) * 100 : 0}%`;
 
   // Tab count badges
   const bAll = document.getElementById('tab-badge-all');
   const bPend = document.getElementById('tab-badge-pending');
   const bComp = document.getElementById('tab-badge-completed');
+  const bCanc = document.getElementById('tab-badge-cancelled');
 
   if (bAll) bAll.innerText = total;
   if (bPend) bPend.innerText = pending;
   if (bComp) bComp.innerText = completed;
+  if (bCanc) bCanc.innerText = cancelled;
 
   // Footer summary
   const elFooter = document.getElementById('footer-count-info');
-  if (elFooter) elFooter.innerText = `Toplam ${total} araç (${completed} saati alınan, ${pending} bekleyen)`;
+  if (elFooter) elFooter.innerText = `Toplam ${total} araç (${completed} saati alınan, ${pending} bekleyen, ${cancelled} gelmeyen/iptal)`;
 }
 
 // ==========================================================================
@@ -207,9 +212,12 @@ function renderDriversTable() {
     if (currentFilter === 'pending') {
       return !d.note || d.note.trim() === '';
     } else if (currentFilter === 'completed') {
-      return d.note && d.note.trim() !== '';
+      return d.note && d.note.trim() !== '' && d.note !== 'GELMİYOR';
+    } else if (currentFilter === 'cancelled') {
+      return d.note === 'GELMİYOR';
     }
     return true;
+  });   return true;
   });
 
   driversTbody.innerHTML = '';
