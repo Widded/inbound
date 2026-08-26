@@ -1,0 +1,19 @@
+{
+  "name": "whatsapp-warehouse-bot",
+  "version": "1.0.0",
+  "description": "Depo Şoför WhatsApp ETA Botu ve Yönetim Paneli",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "test": "node --test tests/*.test.js"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.112.3",
+    "@whiskeysockets/baileys": "^6.7.10",
+    "dotenv": "^17.4.2",
+    "express": "^4.19.2",
+    "googleapis": "^140.0.0",
+    "qrcode-terminal": "^0.12.0",
+    "socket.io": "^4.7.5"
+  }
+}
