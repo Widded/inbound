@@ -92,7 +92,9 @@ socket.on('cutoff_update', (data) => {
 
 // ==========================================================================
 // KPI & METRICS UPDATE
-// =================================================================function updateStats(drivers) {
+// ==========================================================================
+
+function updateStats(drivers) {
   const total = drivers.length;
   const pending = drivers.filter(d => (!d.note || d.note.trim() === '')).length;
   const completed = drivers.filter(d => d.note && d.note.trim() !== '' && d.note !== 'GELMİYOR').length;
@@ -217,7 +219,6 @@ function renderDriversTable() {
       return d.note === 'GELMİYOR';
     }
     return true;
-  });   return true;
   });
 
   driversTbody.innerHTML = '';
