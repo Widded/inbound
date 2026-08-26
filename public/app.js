@@ -181,7 +181,9 @@ function renderDriversTable() {
     driversTbody.innerHTML = `
       <tr>
         <td colspan="5" style="text-align:center; color: var(--ty-text-muted); padding: 56px 20px;">
-          <div style="font-size: 32px; margin-bottom: 8px;">🚛</div>
+          <div style="color: var(--ty-text-soft); margin-bottom: 10px;">
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="1" y="3" width="15" height="13"></rect><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"></polygon><circle cx="5.5" cy="18.5" r="2.5"></circle><circle cx="18.5" cy="18.5" r="2.5"></circle></svg>
+          </div>
           <strong style="font-size: 15px; color: var(--ty-text-display);">Henüz sisteme şoför kaydı eklenmedi</strong>
           <p style="font-size: 12px; margin-top: 4px; color: var(--ty-text-soft);">Yukarıdaki <strong>"+ Yeni Şoför"</strong> butonunu kullanarak filo ekleyebilirsiniz.</p>
         </td>
@@ -256,11 +258,11 @@ function renderDriversTable() {
       ? `<span class="ty-eta-badge-interactive completed" onclick="openEtaModal(${d.id}, '${cleanDriverName}', '${d.note}')" title="Tahmini saati değiştirmek için tıklayın">
            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
            ${d.note}
-           <span class="ty-edit-spark">✎</span>
+           <span class="ty-edit-spark"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg></span>
          </span>`
       : `<span class="ty-eta-badge-interactive pending" onclick="openEtaModal(${d.id}, '${cleanDriverName}', '')" title="Hızlı saat girmek için tıklayın">
            <span>Bekleniyor</span>
-           <span class="ty-edit-spark">✎</span>
+           <span class="ty-edit-spark"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg></span>
          </span>`;
 
     // Action Buttons
@@ -373,7 +375,7 @@ async function askAllPendingDrivers() {
     return;
   }
 
-  showToast(`⚡ ${targetDriversToAsk.length} şoföre (1. Sefer öncelikli) soru gönderiliyor...`, 'info');
+  showToast(`${targetDriversToAsk.length} şoföre (1. Sefer öncelikli) soru gönderiliyor...`, 'info');
   for (let i = 0; i < targetDriversToAsk.length; i++) {
     await askDriverEta(targetDriversToAsk[i].id);
     await new Promise(r => setTimeout(r, 400));
@@ -643,10 +645,17 @@ function showToast(message, type = 'success') {
   const container = document.getElementById('toast-container');
   if (!container) return;
 
+  let iconSvg = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>';
+  if (type === 'error') {
+    iconSvg = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>';
+  } else if (type === 'info') {
+    iconSvg = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>';
+  }
+
   const toast = document.createElement('div');
   toast.className = `ty-toast-card ${type}`;
   toast.innerHTML = `
-    <span>${type === 'success' ? '✅' : type === 'error' ? '⚠️' : 'ℹ️'}</span>
+    <span style="display:inline-flex; align-items:center;">${iconSvg}</span>
     <span>${message}</span>
   `;
   container.appendChild(toast);
