@@ -1,3 +1,10 @@
+process.on('unhandledRejection', (reason) => {
+  console.log('[Baileys Notice - unhandledRejection]:', reason?.message || reason);
+});
+process.on('uncaughtException', (err) => {
+  console.log('[Baileys Notice - uncaughtException]:', err?.message || err);
+});
+
 require('dotenv').config();
 const express = require('express');
 const http = require('http');
