@@ -304,7 +304,11 @@ app.post('/api/send-question', async (req, res) => {
       }
 
       const plateStr = targetDriver.plate && targetDriver.plate.trim() ? `${targetDriver.plate.trim()} plakalı araç ile ` : '';
-      const messageText = `Merhaba Sayın ${driverDisplayName}, ${plateStr}Ayazağa KM depomuza tahmini varış saatiniz nedir?`;
+      const messageText = `Merhaba Sayın ${driverDisplayName}, ${plateStr}Trendyol Express Ayazağa KM depomuza tahmini varış saatiniz nedir?
+
+*Nasıl yanıt verebilirsiniz?*
+• Varış saatiniz: Örn. *16:30* veya *17:00*
+• Bugün gelmeyecekseniz: *GELMİYORUM* veya *İPTAL* yazabilirsiniz.`;
 
       console.log(`[Outgoing WhatsApp Message] -> To JID: ${targetJid} | Content: "${messageText}"`);
       await waSocket.sendMessage(targetJid, { text: messageText }, { ephemeralExpiration: 0 });
