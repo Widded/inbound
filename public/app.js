@@ -265,10 +265,10 @@ function renderDriversTable() {
     let etaChipHtml = '';
     if (d.note === 'GELMİYOR') {
       etaChipHtml = `
-        <span class="ty-eta-badge-interactive cancelled" onclick="openEtaModal(${d.id}, '${cleanDriverName}', 'GELMİYOR')" title="Durumu değiştirmek için tıklayın">
-          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-          Gelmiyor
-          <span class="ty-edit-spark"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg></span>
+        <span class="ty-eta-badge-interactive cancelled" onclick="openEtaModal(${d.id}, '${cleanDriverName}', 'GELMİYOR')" title="Durumu değiştirmek için tıklayın" style="background:#ef4444 !important; color:#ffffff !important; border:1px solid #dc2626 !important; font-weight:800; padding:5px 12px; border-radius:9999px; display:inline-flex; align-items:center; gap:5px; box-shadow:0 2px 8px rgba(239, 68, 68, 0.4);">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="3"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+          <span style="color:#ffffff !important; font-weight:800;">GELMİYOR</span>
+          <span class="ty-edit-spark" style="opacity:0.9;"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.2"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg></span>
         </span>
       `;
     } else if (d.note && d.note.trim() !== '') {
