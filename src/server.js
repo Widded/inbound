@@ -525,41 +525,6 @@ connectToWhatsApp(
 
     console.log(`[WhatsApp Reply Sent] -> JID: ${replyJid} | Content: "${replyText}"`);
     await sock.sendMessage(replyJid, { text: String(replyText) }, { ephemeralExpiration: 0 });
-
-    // SEQUENTIAL 2ND TRIP QUERY:
-    // If 1. Sefer was answered and the driver has an unasked/pending 2. Sefer:
-    const isFirstTrip = !((matchingDriver.driver || '').includes('2. Sefer'));
-    if (isFirstTrip && hasMultipleTrips) {
-      const secondTrip = allMatchingTrips.find(d => (d.driver || '').includes('2. Sefer') && (!d.note || d.note.trim() === ''));
-      if (secondTrip) {
-        setTimeout(async () => {
-          try {
-            const rawBaseName = matchingDriver.driver.replace(/\s*\(\d+\.\s*Sefer\)/g, '').trim();
-            const plateStr = secondTrip.plate && secondTrip.plate.trim() ? `${secondTrip.plate.trim()} plakalı araç ile ` : '';
-            const secondQuestionText = `Sayın ${rawBaseName}, ayrıca (2. Sefer) ${plateStr}Ayazağa KM depomuza tahmini varış saatiniz nedir?`;
-            
-            console.log(`[Auto 2. Sefer Question] -> To JID: ${replyJid} | Content: "${secondQuestionText}"`);
-            await sock.sendMessage(replyJid, { text: String(secondQuestionText) }, { ephemeralExpiration: 0 });
-            secondTrip.asked = true;
-            secondTrip.askedAt = Date.now();
-
-            const plateLabel = secondTrip.plate && secondTrip.plate.trim() ? ` (${secondTrip.plate.trim()})` : '';
-            const logEntry2 = {
-              timestamp: new Date().toLocaleTimeString('tr-TR'),
-              phone: secondTrip.phone,
-              driverName: `${secondTrip.driver}${plateLabel}`,
-              text: `Otomatik 2. Sefer Soruldu -> ${secondTrip.driver}${plateLabel}`,
-              parsedTime: null,
-            };
-            driverLogs.unshift(logEntry2);
-            io.emit('new_message', logEntry2);
-            io.emit('drivers_update', driversList);
-          } catch (e) {
-            console.error('Error auto asking 2. Sefer:', e);
-          }
-        }, 2500);
-      }
-    }
   },
   (status) => {
     connectionStatus = status;
