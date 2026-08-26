@@ -84,9 +84,9 @@ socket.on('new_message', (log) => {
 });
 
 socket.on('cutoff_update', (data) => {
-  if (data && data.cutoffHour) {
-    currentCutoffHour = data.cutoffHour;
-    if (cutoffSelect) cutoffSelect.value = String(data.cutoffHour);
+  if (data && (data.cutoffTime || data.cutoffHour)) {
+    currentCutoffTime = data.cutoffTime || `${String(data.cutoffHour).padStart(2, '0')}:00`;
+    if (cutoffSelect) cutoffSelect.value = currentCutoffTime;
   }
 });
 
@@ -535,17 +535,17 @@ async function confirmResetDay() {
   }
 }
 
-async function handleCutoffChange(newHour) {
+async function handleCutoffChange(newTime) {
   try {
     const res = await fetch('/api/cutoff', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ hour: newHour })
+      body: JSON.stringify({ cutoffTime: newTime })
     });
     const data = await res.json();
     if (data.success) {
-      currentCutoffHour = data.cutoffHour;
-      showToast(`CUT-OFF saati ${data.cutoffHour}:00 olarak güncellendi.`, 'success');
+      currentCutoffTime = data.cutoffTime;
+      showToast(`CUT-OFF saati ${data.cutoffTime} olarak güncellendi.`, 'success');
     } else {
       showToast('CUT-OFF güncellenemedi', 'error');
     }
