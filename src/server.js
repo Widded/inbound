@@ -71,7 +71,7 @@ app.use((req, res, next) => {
 app.use(express.json());
 app.use(express.static(path.join(__dirname, '../public')));
 
-let cutoffTime = '19:00';
+let cutoffTime = 'off';
 
 app.post('/api/reset-day', async (req, res) => {
   await resetDay();
@@ -84,6 +84,13 @@ app.get('/api/cutoff', (req, res) => {
 
 app.post('/api/cutoff', (req, res) => {
   const { cutoffTime: newTime, hour } = req.body;
+  if (newTime === 'off' || newTime === 'none') {
+    cutoffTime = 'off';
+    io.emit('cutoff_update', { cutoffTime });
+    console.log(`⏱️ Cut-off disabled (7/24 test mode active).`);
+    return res.json({ success: true, cutoffTime });
+  }
+
   let targetTime = newTime || (hour ? `${String(hour).padStart(2, '0')}:00` : null);
   if (targetTime && /^[0-2]?[0-9]:[0-5][0-9]$/.test(targetTime)) {
     const parts = targetTime.split(':');
@@ -92,7 +99,7 @@ app.post('/api/cutoff', (req, res) => {
     console.log(`⏱️ Cut-off time updated to ${cutoffTime}.`);
     return res.json({ success: true, cutoffTime });
   }
-  res.status(400).json({ error: 'Geçersiz saat formatı (Örn: 18:30)' });
+  res.status(400).json({ error: 'Geçersiz saat formatı (Örn: 18:30 veya off)' });
 });
 
 let waSocket = null;
@@ -476,25 +483,28 @@ connectToWhatsApp(
     // The recipient JID for replying MUST BE msg.key.remoteJid to match the active Signal session
     const replyJid = msg.key.remoteJid;
 
-    // DYNAMIC CUT-OFF RULE 2: Do not accept responses after cutoff time!
-    const now = new Date();
-    const currentHours = String(now.getHours()).padStart(2, '0');
-    const currentMinutes = String(now.getMinutes()).padStart(2, '0');
-    const currentTimeStr = `${currentHours}:${currentMinutes}`;
+    // DYNAMIC CUT-OFF RULE 2: Do not accept responses after cutoff time (unless disabled / test mode)
+    const isCutoffActive = cutoffTime && cutoffTime !== 'off' && cutoffTime !== 'none';
+    if (isCutoffActive) {
+      const now = new Date();
+      const currentHours = String(now.getHours()).padStart(2, '0');
+      const currentMinutes = String(now.getMinutes()).padStart(2, '0');
+      const currentTimeStr = `${currentHours}:${currentMinutes}`;
 
-    if (currentTimeStr >= cutoffTime && !isCancelled) {
-      const closedReply = `Sayın ${matchingDriver.driver}, mesai saatlerimiz (${cutoffTime}) sona erdiğinden dolayı tahmini varış saati kabul edilmemektedir.`;
-      console.log(`[WhatsApp Reply Closed] -> JID: ${replyJid} | Content: "${closedReply}"`);
-      await sock.sendMessage(replyJid, { text: String(closedReply) }, { ephemeralExpiration: 0 });
-      return;
-    }
+      if (currentTimeStr >= cutoffTime && !isCancelled) {
+        const closedReply = `Sayın ${matchingDriver.driver}, mesai saatlerimiz (${cutoffTime}) sona erdiğinden dolayı tahmini varış saati kabul edilmemektedir.`;
+        console.log(`[WhatsApp Reply Closed] -> JID: ${replyJid} | Content: "${closedReply}"`);
+        await sock.sendMessage(replyJid, { text: String(closedReply) }, { ephemeralExpiration: 0 });
+        return;
+      }
 
-    // DYNAMIC CUT-OFF RULE 3: Do not accept ETA times past cutoff time!
-    if (parsedTime && parsedTime > cutoffTime) {
-      const lateEtaReply = `Sayın ${matchingDriver.driver}, saat ${cutoffTime}'dan sonraki varış saatleri kabul edilmemektedir.`;
-      console.log(`[WhatsApp Reply Late ETA] -> JID: ${replyJid} | ETA: ${parsedTime}`);
-      await sock.sendMessage(replyJid, { text: String(lateEtaReply) }, { ephemeralExpiration: 0 });
-      return;
+      // DYNAMIC CUT-OFF RULE 3: Do not accept ETA times past cutoff time!
+      if (parsedTime && parsedTime > cutoffTime) {
+        const lateEtaReply = `Sayın ${matchingDriver.driver}, saat ${cutoffTime}'dan sonraki varış saatleri kabul edilmemektedir.`;
+        console.log(`[WhatsApp Reply Late ETA] -> JID: ${replyJid} | ETA: ${parsedTime}`);
+        await sock.sendMessage(replyJid, { text: String(lateEtaReply) }, { ephemeralExpiration: 0 });
+        return;
+      }
     }
 
     const effectiveStatus = isCancelled ? 'GELMİYOR' : parsedTime;
