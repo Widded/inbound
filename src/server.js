@@ -443,20 +443,20 @@ connectToWhatsApp(
       });
 
       if (matchingDrivers.length > 0) {
-        // Priority 1: A trip specifically asked recently that is still pending (!note)
-        const pendingAsked = matchingDrivers
-          .filter(d => d.askedAt && (!d.note || d.note.trim() === ''))
+        // Trips specifically asked by the operator/bot
+        const askedTrips = matchingDrivers
+          .filter(d => d.asked && d.askedAt)
           .sort((a, b) => (b.askedAt || 0) - (a.askedAt || 0));
 
-        // Priority 2: Any pending trip for this driver (1. Sefer first, then 2. Sefer)
-        const pendingTrip = matchingDrivers.find(d => !d.note || d.note.trim() === '');
-
-        // Priority 3: The most recently asked trip (in case of an ETA update to a filled trip)
-        const recentlyAsked = matchingDrivers
-          .filter(d => d.askedAt)
-          .sort((a, b) => (b.askedAt || 0) - (a.askedAt || 0));
-
-        matchingDriver = pendingAsked[0] || pendingTrip || recentlyAsked[0] || matchingDrivers[0];
+        if (askedTrips.length > 0) {
+          // 1. If an asked trip is still pending a response, answer that trip first
+          const pendingAsked = askedTrips.find(d => !d.note || d.note.trim() === '');
+          // 2. Otherwise, update the time of the MOST RECENTLY ASKED trip (e.g. driver is modifying their 1st trip time)
+          matchingDriver = pendingAsked || askedTrips[0];
+        } else {
+          // If no trip was queried yet via WhatsApp, fill the first pending trip (1. Sefer first)
+          matchingDriver = matchingDrivers.find(d => !d.note || d.note.trim() === '') || matchingDrivers[0];
+        }
       }
     }
 
