@@ -474,6 +474,34 @@
     </div>
   </div>
 
+  <!-- Universal Action Confirmation Modal -->
+  <div id="confirm-modal" class="ty-modal-backdrop" style="display: none;">
+    <div class="ty-modal-window ty-modal-compact">
+      <div class="ty-modal-top">
+        <div class="ty-modal-title-group">
+          <div id="confirm-modal-icon" class="ty-icon-badge orange">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
+          </div>
+          <div>
+            <h3 id="confirm-modal-title">İşlem Onayı</h3>
+            <span id="confirm-modal-sub" class="ty-modal-sub">Lütfen işlemi onaylayın</span>
+          </div>
+        </div>
+        <button class="ty-modal-x" onclick="closeConfirmModal()" title="Kapat">✕</button>
+      </div>
+
+      <div class="ty-modal-content">
+        <p id="confirm-modal-message" style="font-size: 13px; color: var(--ty-text-body); line-height: 1.5; font-weight: 600;"></p>
+        <div id="confirm-modal-extra" style="font-size: 11px; color: var(--ty-text-muted); background: var(--ty-surface-muted); padding: 8px 12px; border-radius: var(--radius-sm); border: 1px solid var(--ty-border-light); display: none;"></div>
+
+        <div class="ty-modal-bottom-actions" style="display:flex; justify-content:flex-end; gap:8px; margin-top:8px;">
+          <button type="button" class="ty-btn-frost" onclick="closeConfirmModal()">Vazgeç</button>
+          <button type="button" id="confirm-modal-btn" class="ty-btn-vibrant-gradient" onclick="executeConfirmAction()">Onayla</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Toast Notification Stack -->
   <div id="toast-container" class="ty-toast-anchor"></div>
 

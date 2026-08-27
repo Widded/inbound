@@ -367,6 +367,60 @@ async function askDriverEta(driverId) {
   }
 }
 
+// ==========================================================================
+// UNIVERSAL CONFIRMATION MODAL
+// ==========================================================================
+let pendingConfirmAction = null;
+
+function openConfirmModal({ title, sub, message, extra = '', confirmText = 'Onayla', confirmClass = 'ty-btn-vibrant-gradient', iconType = 'orange', onConfirm }) {
+  const modal = document.getElementById('confirm-modal');
+  const titleEl = document.getElementById('confirm-modal-title');
+  const subEl = document.getElementById('confirm-modal-sub');
+  const msgEl = document.getElementById('confirm-modal-message');
+  const extraEl = document.getElementById('confirm-modal-extra');
+  const btnEl = document.getElementById('confirm-modal-btn');
+  const iconBox = document.getElementById('confirm-modal-icon');
+
+  if (titleEl) titleEl.innerText = title || 'İşlem Onayı';
+  if (subEl) subEl.innerText = sub || 'Lütfen işlemi onaylayın';
+  if (msgEl) msgEl.innerHTML = message || '';
+  
+  if (extraEl) {
+    if (extra) {
+      extraEl.innerHTML = extra;
+      extraEl.style.display = 'block';
+    } else {
+      extraEl.style.display = 'none';
+    }
+  }
+
+  if (btnEl) {
+    btnEl.innerText = confirmText;
+    btnEl.className = confirmClass;
+  }
+
+  if (iconBox) {
+    iconBox.className = `ty-icon-badge ${iconType}`;
+  }
+
+  pendingConfirmAction = onConfirm;
+  if (modal) modal.style.display = 'flex';
+}
+
+function closeConfirmModal() {
+  const modal = document.getElementById('confirm-modal');
+  if (modal) modal.style.display = 'none';
+  pendingConfirmAction = null;
+}
+
+async function executeConfirmAction() {
+  const action = pendingConfirmAction;
+  closeConfirmModal();
+  if (typeof action === 'function') {
+    await action();
+  }
+}
+
 async function askAllPendingDrivers() {
   // Group trips by unique phone number
   const phoneMap = new Map();
@@ -399,30 +453,56 @@ async function askAllPendingDrivers() {
     return;
   }
 
-  showToast(`${targetDriversToAsk.length} şoföre (1. Sefer öncelikli) soru gönderiliyor...`, 'info');
-  for (let i = 0; i < targetDriversToAsk.length; i++) {
-    await askDriverEta(targetDriversToAsk[i].id);
-    await new Promise(r => setTimeout(r, 400));
-  }
-  showToast('Soru mesajları başarıyla iletildi.', 'success');
+  openConfirmModal({
+    title: 'Toplu Soru Gönderimi',
+    sub: 'Tüm Bekleyen Araçlara WhatsApp Mesajı',
+    message: `Saat bekleyen <strong>${targetDriversToAsk.length} şoföre</strong> WhatsApp üzerinden tahmini varış saati sorusu gönderilecek. Onaylıyor musunuz?`,
+    extra: '2 seferli araçlarda öncelikli olarak 1. Sefer sorulur.',
+    confirmText: 'Evet, Tümüne Gönder',
+    confirmClass: 'ty-btn-vibrant-gradient',
+    iconType: 'orange',
+    onConfirm: async () => {
+      showToast(`${targetDriversToAsk.length} şoföre soru gönderiliyor...`, 'info');
+      for (let i = 0; i < targetDriversToAsk.length; i++) {
+        await askDriverEta(targetDriversToAsk[i].id);
+        await new Promise(r => setTimeout(r, 400));
+      }
+      showToast('Soru mesajları başarıyla iletildi.', 'success');
+    }
+  });
 }
 
-async function addDriverTrip(driverId) {
-  try {
-    const res = await fetch('/api/drivers/add-trip', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ driverId })
-    });
-    const data = await res.json();
-    if (data.success) {
-      showToast(`${data.driver.driver} sefer kaydı açıldı.`, 'success');
-    } else {
-      showToast(data.error || 'Sefer açılamadı', 'error');
+function addDriverTrip(driverId) {
+  const driver = allDrivers.find(d => d.id === driverId || d.id == driverId);
+  const driverName = driver ? driver.driver : 'Bu şoför';
+  const driverPlate = driver && driver.plate ? ` (${driver.plate})` : '';
+
+  openConfirmModal({
+    title: '2. Sefer Kaydı Ekle',
+    sub: 'Ek sefer oluşturma onayı',
+    message: `<strong>${driverName}${driverPlate}</strong> için 2. Sefer kaydı oluşturmak istiyor musunuz?`,
+    extra: '2. Sefer kaydı oluşturulduğunda şoför listesine eklenecektir.',
+    confirmText: 'Evet, 2. Seferi Ekle',
+    confirmClass: 'ty-btn-vibrant-gradient',
+    iconType: 'orange',
+    onConfirm: async () => {
+      try {
+        const res = await fetch('/api/drivers/add-trip', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ driverId })
+        });
+        const data = await res.json();
+        if (data.success) {
+          showToast(`${data.driver.driver} sefer kaydı açıldı.`, 'success');
+        } else {
+          showToast(data.error || 'Sefer açılamadı', 'error');
+        }
+      } catch (err) {
+        showToast('Bağlantı hatası: ' + err.message, 'error');
+      }
     }
-  } catch (err) {
-    showToast('Bağlantı hatası: ' + err.message, 'error');
-  }
+  });
 }
 
 // Inline ETA Quick Modal Handlers
@@ -502,38 +582,53 @@ async function clearDriverEta() {
   }
 }
 
-async function deleteDriver(driverId, driverName) {
-  const confirmed = confirm(`"${driverName}" kaydını listeden silmek istediğinize emin misiniz?`);
-  if (!confirmed) return;
-
-  try {
-    const res = await fetch(`/api/drivers/${driverId}`, { method: 'DELETE' });
-    const data = await res.json();
-    if (data.success) {
-      showToast('Şoför kaydı başarıyla silindi.', 'success');
-    } else {
-      showToast(data.error || 'Silme işlemi başarısız', 'error');
+function deleteDriver(driverId, driverName) {
+  openConfirmModal({
+    title: 'Şoför / Sefer Kaydını Sil',
+    sub: 'Kalıcı silme işlemi onayı',
+    message: `<strong>${driverName || 'Bu şoför'}</strong> kaydını sistemden silmek istediğinize emin misiniz?`,
+    confirmText: 'Evet, Sil',
+    confirmClass: 'ty-btn-danger-glass',
+    iconType: 'red',
+    onConfirm: async () => {
+      try {
+        const res = await fetch(`/api/drivers/${driverId}`, { method: 'DELETE' });
+        const data = await res.json();
+        if (data.success) {
+          showToast('Şoför kaydı başarıyla silindi.', 'success');
+        } else {
+          showToast(data.error || 'Silme işlemi başarısız', 'error');
+        }
+      } catch (err) {
+        showToast('Silme hatası: ' + err.message, 'error');
+      }
     }
-  } catch (err) {
-    showToast('Silme hatası: ' + err.message, 'error');
-  }
+  });
 }
 
-async function confirmResetDay() {
-  const confirmed = confirm('Tüm şoförlerin tahmini varış saatlerini ve durumlarını sıfırlamak istediğinize emin misiniz?');
-  if (!confirmed) return;
-
-  try {
-    const res = await fetch('/api/reset-day', { method: 'POST' });
-    const data = await res.json();
-    if (data.success) {
-      showToast('Günün varış saatleri başarıyla sıfırlandı.', 'success');
-    } else {
-      showToast('Sıfırlama hatası: ' + (data.error || 'İşlem başarısız'), 'error');
+function confirmResetDay() {
+  openConfirmModal({
+    title: 'Günü Sıfırla',
+    sub: 'Tüm varış saatlerini temizleme',
+    message: 'Tüm şoförlerin tahmini varış saatlerini ve durumlarını sıfırlamak istediğinize emin misiniz?',
+    extra: 'Tüm şoförlerin saatleri "Bekleniyor" durumuna dönecektir.',
+    confirmText: 'Evet, Günü Sıfırla',
+    confirmClass: 'ty-btn-danger-glass',
+    iconType: 'red',
+    onConfirm: async () => {
+      try {
+        const res = await fetch('/api/reset-day', { method: 'POST' });
+        const data = await res.json();
+        if (data.success) {
+          showToast('Günün varış saatleri başarıyla sıfırlandı.', 'success');
+        } else {
+          showToast('Sıfırlama hatası: ' + (data.error || 'İşlem başarısız'), 'error');
+        }
+      } catch (err) {
+        showToast('Bağlantı hatası: ' + err.message, 'error');
+      }
     }
-  } catch (err) {
-    showToast('Bağlantı hatası: ' + err.message, 'error');
-  }
+  });
 }
 
 async function handleCutoffChange(newTime) {
