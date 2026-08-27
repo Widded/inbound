@@ -359,7 +359,7 @@ io.on('connection', (socket) => {
   socket.emit('status', { status: connectionStatus, qr: qrCodeData });
   socket.emit('logs', driverLogs);
   socket.emit('drivers_update', driversList);
-  socket.emit('cutoff_update', { cutoffHour });
+  socket.emit('cutoff_update', { cutoffTime });
 });
 
 function extractPhoneFromMsg(msg) {
