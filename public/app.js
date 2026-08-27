@@ -237,21 +237,25 @@ function renderDriversTable() {
   filtered.forEach(d => {
     const tr = document.createElement('tr');
     
-    // Check Multi-Trip (1. Sefer / 2. Sefer)
+    // Check Multi-Trip (1. Sefer / 2. Sefer / 3. Sefer ...)
     const cleanDigits = (d.phone || '').replace(/[^0-9]/g, '').slice(-10);
-    const tripsCount = allDrivers.filter(x => (x.phone || '').replace(/[^0-9]/g, '').slice(-10) === cleanDigits).length;
-    
-    const isSecondTrip = (d.driver || '').includes('2. Sefer');
+    const existingTrips = allDrivers.filter(x => (x.phone || '').replace(/[^0-9]/g, '').slice(-10) === cleanDigits);
+    const tripsCount = existingTrips.length;
+    const nextTripNum = tripsCount + 1;
+    const tripBtnText = `+ ${nextTripNum}. Sefer`;
+
+    // Determine current row's trip number
+    const tripMatch = (d.driver || '').match(/\((\d+)\.\s*Sefer\)/);
+    const currentTripNum = tripMatch ? parseInt(tripMatch[1], 10) : 1;
+
     let tripBadgeHtml = '';
-    if (tripsCount > 1) {
-      tripBadgeHtml = isSecondTrip 
-        ? `<span class="ty-trip-indicator trip-2">2. Sefer</span>`
-        : `<span class="ty-trip-indicator trip-1">1. Sefer</span>`;
+    if (tripsCount > 1 || (d.driver || '').includes('Sefer')) {
+      tripBadgeHtml = `<span class="ty-trip-indicator trip-${currentTripNum}">${currentTripNum}. Sefer</span>`;
     }
 
     // Driver Avatar + Name
     const driverInitials = getInitials(d.driver);
-    const cleanDriverName = (d.driver || '').replace(/\(1\. Sefer\)|\(2\. Sefer\)/g, '').trim();
+    const cleanDriverName = (d.driver || '').replace(/\s*\(\d+\.\s*Sefer\)/g, '').trim();
 
     // Plate Box (Authentic 3D TR Plate style)
     const rawPlate = (d.plate || 'PLAKASIZ').toUpperCase().trim();
@@ -300,7 +304,7 @@ function renderDriversTable() {
           <button class="ty-btn-circle-action" onclick="askDriverEta(${d.id})" title="Şoföre Yeniden Soru Gönder">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="23 4 23 10 17 10"></polyline><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path></svg>
           </button>
-          <button class="ty-btn-pill-trip" onclick="addDriverTrip(${d.id})" title="Bu şoför için 2. Sefer satırı aç">+ 2. Sefer</button>
+          <button class="ty-btn-pill-trip" onclick="addDriverTrip(${d.id})" title="Bu şoför için ${nextTripNum}. Sefer satırı aç">${tripBtnText}</button>
           <button class="ty-btn-circle-action delete" onclick="deleteDriver(${d.id}, '${d.driver}')" title="Şoförü / Seferi Listeden Sil">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
           </button>
@@ -314,7 +318,7 @@ function renderDriversTable() {
             </svg>
             WhatsApp'tan Sor
           </button>
-          <button class="ty-btn-pill-trip" onclick="addDriverTrip(${d.id})" title="Bu şoför için 2. Sefer satırı aç">+ 2. Sefer</button>
+          <button class="ty-btn-pill-trip" onclick="addDriverTrip(${d.id})" title="Bu şoför için ${nextTripNum}. Sefer satırı aç">${tripBtnText}</button>
           <button class="ty-btn-circle-action delete" onclick="deleteDriver(${d.id}, '${d.driver}')" title="Şoförü / Seferi Listeden Sil">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
           </button>
@@ -474,15 +478,18 @@ async function askAllPendingDrivers() {
 
 function addDriverTrip(driverId) {
   const driver = allDrivers.find(d => d.id === driverId || d.id == driverId);
-  const driverName = driver ? driver.driver : 'Bu şoför';
+  const cleanDigits = driver ? (driver.phone || '').replace(/[^0-9]/g, '').slice(-10) : '';
+  const existingTrips = allDrivers.filter(x => (x.phone || '').replace(/[^0-9]/g, '').slice(-10) === cleanDigits);
+  const nextTripNum = existingTrips.length + 1;
+  const driverName = driver ? driver.driver.replace(/\s*\(\d+\.\s*Sefer\)/g, '').trim() : 'Bu şoför';
   const driverPlate = driver && driver.plate ? ` (${driver.plate})` : '';
 
   openConfirmModal({
-    title: '2. Sefer Kaydı Ekle',
+    title: `${nextTripNum}. Sefer Kaydı Ekle`,
     sub: 'Ek sefer oluşturma onayı',
-    message: `<strong>${driverName}${driverPlate}</strong> için 2. Sefer kaydı oluşturmak istiyor musunuz?`,
-    extra: '2. Sefer kaydı oluşturulduğunda şoför listesine eklenecektir.',
-    confirmText: 'Evet, 2. Seferi Ekle',
+    message: `<strong>${driverName}${driverPlate}</strong> için ${nextTripNum}. Sefer kaydı oluşturmak istiyor musunuz?`,
+    extra: `${nextTripNum}. Sefer kaydı oluşturulduğunda şoför listesine eklenecektir.`,
+    confirmText: `Evet, ${nextTripNum}. Seferi Ekle`,
     confirmClass: 'ty-btn-vibrant-gradient',
     iconType: 'orange',
     onConfirm: async () => {
