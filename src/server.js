@@ -105,16 +105,26 @@ let driversList = [];
 async function syncDriversFromDb() {
   const dbDrivers = await fetchDriversFromDb();
   if (dbDrivers && Array.isArray(dbDrivers)) {
-    driversList = dbDrivers.map(d => ({
-      id: d.id,
-      driver: d.driver,
-      plate: d.plate,
-      phone: d.phone,
-      entry: d.entry || '*',
-      exit: d.exit || '*',
-      ramp: d.ramp || '*',
-      note: d.note || ''
-    }));
+    const prevMap = new Map();
+    driversList.forEach(d => {
+      prevMap.set(d.id, { asked: d.asked, askedAt: d.askedAt, note: d.note });
+    });
+
+    driversList = dbDrivers.map(d => {
+      const prev = prevMap.get(d.id);
+      return {
+        id: d.id,
+        driver: d.driver,
+        plate: d.plate,
+        phone: d.phone,
+        entry: d.entry || '*',
+        exit: d.exit || '*',
+        ramp: d.ramp || '*',
+        note: d.note || (prev ? prev.note : '') || '',
+        asked: prev ? Boolean(prev.asked) : false,
+        askedAt: prev ? prev.askedAt : null
+      };
+    });
     io.emit('drivers_update', driversList);
     console.log(`Synced ${driversList.length} drivers directly from Supabase database.`);
   }
@@ -225,7 +235,7 @@ app.post('/api/drivers/update-eta', async (req, res) => {
   const cleanPhone = targetDriver.phone.replace(/[^0-9]/g, '');
   if (cleanPhone) {
     const tripLabel = (targetDriver.driver || '').includes('2. Sefer') ? '2. Sefer' : '';
-    await updateDriverEtaInDb(cleanPhone.slice(-10), cleanTime);
+    await updateDriverEtaInDb(cleanPhone.slice(-10), cleanTime, targetDriver.id, tripLabel);
     await googleSheetsService.updateDriverEtaInSheet(targetDriver.plate, targetDriver.phone, cleanTime, tripLabel);
   }
 
@@ -421,23 +431,25 @@ connectToWhatsApp(
     if (cleanPhoneDigits) {
       const last10 = cleanPhoneDigits.slice(-10);
       const matchingDrivers = driversList.filter(d => {
-        const dDigits = d.phone.replace(/[^0-9]/g, '').slice(-10);
+        const dDigits = (d.phone || '').replace(/[^0-9]/g, '').slice(-10);
         return dDigits.length > 5 && dDigits === last10;
       });
 
       if (matchingDrivers.length > 0) {
-        // 1. If a question was asked specifically for a trip row (has askedAt), route reply to that trip
+        // Priority 1: A trip specifically asked recently that is still pending (!note)
+        const pendingAsked = matchingDrivers
+          .filter(d => d.askedAt && (!d.note || d.note.trim() === ''))
+          .sort((a, b) => (b.askedAt || 0) - (a.askedAt || 0));
+
+        // Priority 2: Any pending trip for this driver (1. Sefer first, then 2. Sefer)
+        const pendingTrip = matchingDrivers.find(d => !d.note || d.note.trim() === '');
+
+        // Priority 3: The most recently asked trip (in case of an ETA update to a filled trip)
         const recentlyAsked = matchingDrivers
           .filter(d => d.askedAt)
           .sort((a, b) => (b.askedAt || 0) - (a.askedAt || 0));
 
-        if (recentlyAsked.length > 0) {
-          matchingDriver = recentlyAsked[0];
-        } else {
-          // 2. Default: Prefer the 1st primary trip row, or pending trip
-          const pendingTrip = matchingDrivers.slice().reverse().find(d => !d.note);
-          matchingDriver = pendingTrip || matchingDrivers[matchingDrivers.length - 1];
-        }
+        matchingDriver = pendingAsked[0] || pendingTrip || recentlyAsked[0] || matchingDrivers[0];
       }
     }
 
@@ -496,7 +508,7 @@ connectToWhatsApp(
     const effectivePhoneDigits = cleanPhoneDigits || matchingDriver.phone.replace(/[^0-9]/g, '');
     if (effectivePhoneDigits) {
       const tripLabel = (matchingDriver.driver || '').includes('2. Sefer') ? '2. Sefer' : '';
-      await updateDriverEtaInDb(effectivePhoneDigits.slice(-10), effectiveStatus);
+      await updateDriverEtaInDb(effectivePhoneDigits.slice(-10), effectiveStatus, matchingDriver.id, tripLabel);
       await googleSheetsService.updateDriverEtaInSheet(matchingDriver.plate, matchingDriver.phone, effectiveStatus, tripLabel);
     }
 

@@ -50,19 +50,41 @@ async function insertDriverToDb(driverObj) {
   return data ? data[0] : null;
 }
 
-async function updateDriverEtaInDb(cleanPhoneDigits, etaTime) {
+async function updateDriverEtaInDb(cleanPhoneDigits, etaTime, driverId = null, tripLabel = '') {
   if (!supabase) return null;
 
-  // Find matching driver in Supabase
+  // 1. Direct update by ID if available
+  if (driverId) {
+    const { data, error } = await supabase
+      .from('drivers')
+      .update({ note: etaTime })
+      .eq('id', driverId)
+      .select();
+
+    if (!error && data && data.length > 0) {
+      return data[0];
+    }
+  }
+
+  // 2. Query all drivers to match correctly
   const { data: drivers } = await supabase.from('drivers').select('*');
   if (!drivers) return null;
 
-  const target = drivers.find(d => {
-    const dDigits = d.phone.replace(/[^0-9]/g, '').slice(-10);
+  const matchingList = drivers.filter(d => {
+    const dDigits = (d.phone || '').replace(/[^0-9]/g, '').slice(-10);
     return dDigits.length > 5 && dDigits === cleanPhoneDigits;
   });
 
-  if (!target) return null;
+  if (matchingList.length === 0) return null;
+
+  let target = null;
+  if (tripLabel) {
+    target = matchingList.find(d => (d.driver || '').includes(tripLabel));
+  }
+  if (!target) {
+    // If multiple trips, prefer the pending one (!note) or first one
+    target = matchingList.find(d => !d.note || d.note.trim() === '') || matchingList[0];
+  }
 
   const { data, error } = await supabase
     .from('drivers')
